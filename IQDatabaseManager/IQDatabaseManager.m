@@ -126,18 +126,30 @@
         
         NSDictionary *optionsDictionary = [[self class] persistentStoreOptions];
         
-        if (![persistentStoreCoordinator addPersistentStoreWithType:NSSQLiteStoreType configuration:nil URL:storeURL options:optionsDictionary error:&error])
+        BOOL shouldAddPersistentStore = YES;
+        for (NSPersistentStore * store in persistentStoreCoordinator.persistentStores)
         {
-            NSLog(@"PersistentStore Error: %@, %@", error, [error userInfo]);
-            
-            //Removign file and now trying once again
-            [[NSFileManager defaultManager] removeItemAtURL:storeURL error:nil];
-            
-            if (![persistentStoreCoordinator addPersistentStoreWithType:NSSQLiteStoreType configuration:nil URL:storeURL options:nil error:&error])
+            if ([store.URL isEqual:storeURL])
             {
-                //If issue still not resolved then removing file and aborting.
+                shouldAddPersistentStore = NO;
+            }
+        }
+        
+        if (shouldAddPersistentStore)
+        {
+            if (![persistentStoreCoordinator addPersistentStoreWithType:NSSQLiteStoreType configuration:nil URL:storeURL options:optionsDictionary error:&error])
+            {
+                NSLog(@"PersistentStore Error: %@, %@", error, [error userInfo]);
+                
+                //Removign file and now trying once again
                 [[NSFileManager defaultManager] removeItemAtURL:storeURL error:nil];
-                abort();
+                
+                if (![persistentStoreCoordinator addPersistentStoreWithType:NSSQLiteStoreType configuration:nil URL:storeURL options:nil error:&error])
+                {
+                    //If issue still not resolved then removing file and aborting.
+                    [[NSFileManager defaultManager] removeItemAtURL:storeURL error:nil];
+                    abort();
+                }
             }
         }
     }
